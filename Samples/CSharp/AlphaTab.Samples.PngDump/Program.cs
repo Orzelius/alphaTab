@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -23,7 +23,7 @@ namespace AlphaTab.Samples.PngDump
 
             // render score with svg engine and desired rendering width
             var settings = Settings.Defaults;
-            settings.Engine = "skia";
+            settings.Engine = "SVG";
             var renderer = new ScoreRenderer(settings);
             renderer.Width = 970;
 
@@ -37,8 +37,10 @@ namespace AlphaTab.Samples.PngDump
                 var images = new List<SKImage>();
                 var totalWidth = 0;
                 var totalHeight = 0;
+                
                 renderer.PartialRenderFinished += r =>
                 {
+                    Console.WriteLine(r.RenderResult.GetType());
                     images.Add((SKImage)r.RenderResult);
                 };
                 renderer.RenderFinished += r =>
@@ -51,6 +53,19 @@ namespace AlphaTab.Samples.PngDump
                 // write png
                 var info = new FileInfo(args[0]);
                 var path = Path.Combine(info.DirectoryName, Path.GetFileNameWithoutExtension(info.Name) + "-" + i + ".png");
+                var pathSvg = Path.Combine(info.DirectoryName, Path.GetFileNameWithoutExtension(info.Name) + "-" + i + ".svg");
+                var stream = SKFileWStream.OpenStream(pathSvg);
+                var writer = new SKXmlStreamWriter(stream);
+                var Rect = new SKRect(0, 0, totalWidth, totalHeight);
+                using (var s = SKSvgCanvas.Create(Rect, writer))
+                {
+                    var y = 0;
+                    foreach (var image in images)
+                    {
+                        s.DrawImage(image, new SKRect(0, y, image.Width, y + image.Height));
+                        y += image.Height;
+                    }
+                }
 
                 using (var full = SKSurface.Create(new SKImageInfo(totalWidth, totalHeight, SKImageInfo.PlatformColorType, SKAlphaType.Premul)))
                 {
